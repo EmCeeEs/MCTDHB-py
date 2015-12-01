@@ -5,6 +5,7 @@
 import subprocess as subp
 import os
 import os.path
+#import os.stat
 import glob
 
 # TODO: Include Scripts and Templates
@@ -46,13 +47,14 @@ def get_binaries():
 def execute(binary, quiet=False):
     """execute(binary, quiet=False)"""
     # If exit status of program is non-zero,
-    # raise subprocess.CalledProcessError.
+    # always raise subprocess.CalledProcessError.
+    path = './'
     if (quiet):
         # Catch everything from stdout and sterr and return it.
-        subp.check_output(['./' + binary], stderr=subp.STDOUT)
+        subp.check_output([path + binary], stderr=subp.STDOUT)
     else:
         # Print everything and return exit status.
-        subp.check_call(['./' + binary])
+        subp.check_call([path + binary])
 
 def mk_dir(directory):
     """Create folder if not existing."""

@@ -27,7 +27,7 @@ class InterpretationError(Exception):
         return 'Could not interpreted' + repr(self.value)
 
 def read_f90_input(infile):
-    """read_f90_input(infile) -> dict
+    """read_f90_input(infile) -> OrderedDict
     
     Read f90-style input file.
     Return nested dictionary -- records, names and values.
@@ -59,7 +59,7 @@ def read_f90_input(infile):
     return pars
 
 def read_str_input(infile):
-    """read_str_input(infile) -> dict
+    """read_str_input(infile) -> OrderedDict
     
     Read string input file.
     Return dictionary of input parameters -- names and expressions.

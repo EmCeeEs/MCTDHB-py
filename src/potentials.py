@@ -8,7 +8,6 @@ import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fmin
-#import scipy.optimize
 #import sympy
 
 def Vpoly(x, par=(0.5, 2), as_str=False):

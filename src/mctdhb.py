@@ -4,9 +4,12 @@
 """mctdhb.py"""
 import utilities as util
 import io_routines as io
+import states
 
 f90_infiles = ['input.in', 'properties.in']
 str_infiles = ['V_W_Psi_string.in']
+
+outfiles = ['NO_PR.out', 'OP_PR.out']
 
 class MCTDHB(object):
     """MCTDHB class"""
@@ -32,37 +35,99 @@ class MCTDHB(object):
         util.restore_infiles()
         util.restore_binaries()
     
-    def relax(self, backward=False):
+    def relax(self, tolerance=1E-8,
+                    t_final=11.,
+                    t_tau=.1,
+                    t_begin = 0.,
+                    backward=False,
+                    print_data=False):
+        """Find system's GroundState (GS)."""
         if (backward):
-            self.run(job='relax_backward')
+            self.set_par('JOB_PREFAC', complex(+1, 0))
         else:
-            self.run(job='relax')
+            self.set_par('JOB_PREFAC', complex(-1, 0))
+        self.set_par('PRINT_DATA', print_data)
+        self.set_par('GUESS', 'HAND')
+        self.set_par('STATE', 1)        #relax to GS
+        self.set_par('TIME_BGN', t_begin)
+        self.set_par('TIME_FNL', t_final)
+        self.set_par('TIME_TOLERROR_TOTAL', tolerance)
+        self.set_par('TIME_TAU', t_tau)    #working relaxation step
+        self.set_par('TIME_PRINT_STEP', t_tau)
         
-
-    def run(self, job=None, quiet=False):
-        """run MCTDHB"""
-        if (job):
-            self.set_job(job)
+        m = self.get_par('MORB')
+        delta_t = 5
+        relaxed = False
+        while not relaxed:
+            self.write()
+            util.execute(self.bins[0])
+            # Extract data from MCTDHB outfiles.
+            for name in ['NO_PR.out', 'OP_PR.out']:
+                self.data[name] = io.extract_data(name)
+            # Check if converged.
+            #          dE(last interation)      < 'TIME_TOLERROR_TOTAL' 
+            if (self.data['NO_PR.out'][-1][m+3] < tolerance):
+                relaxed = True
+            else:
+                t_final += delta_t
+                self.set_par('TIME_FNL', t_fnl)
+        
+        self.state = states.GS(self) 
+    
+    def prop(self, backward=False,
+                   t_fnl=200.,
+                   tolerance=1E-6,
+                   guess='BINR',
+                   print_step=.01):
+        """Propagate the last relaxed state."""
+        if (backward):
+            self.set_par('JOB_PREFAC', complex(0, +1))
+        else:
+            self.set_par('JOB_PREFAC', complex(0, -1))
+        if (guess in ['BINR', 'HAND', 'DATA']):
+            self.set_par('GUESS', guess)
+            self.set_par('BINARY_START_POINT_T', self.get_par('TIME_BGN'))
+            # TODO: Adjust *.dat files.
+            self.set_par('TIME_RES_ORB_FILE_NAME', '10.0000000time.dat')
+            self.set_par('TIME_RES_CIC_FILE_NAME', '10.0000000coef.dat')
+        else:
+            raise Exception('Invalid guess type')
+        
+        self.set_par('PRINT_DATA', True)
+        self.set_par('TIME_BGN', 0.)
+        self.set_par('TIME_FNL', t_fnl)
+        self.set_par('TIME_TAU', print_step)   #initial propagation step
+        self.set_par('TIME_PRINT_STEP', print_step)
+        self.set_par('TIME_TOLERROR_TOTAL', tolerance)
+        #run
         self.write()
-        util.execute(self.bins[0], quiet)
+        util.execute(self.bins[0])
         for name in ['NO_PR.out', 'OP_PR.out']:
             self.data[name] = io.extract_data(name)
-        #converg/relax errors: dE(last interation) < 'TIME_TOLERROR_TOTAL' 
-        assert (self.data['NO_PR.out'][-1][self.get_par('MORB')+3]
-                < self.data['NO_PR.out'][-1][self.get_par('MORB')+2])
-        self.state = GS(self)
-    
-    def run_properties(self, quiet=False):
-        """compute properties -- includes MCTDHB-LR"""
+
+    def linear_response(self):
+        """Compute MCTDHB-LR."""
         if (self.state is None):
-            raise IOError
-        self.activate_LR()
+            raise Exception('No relaxed state to start from.')
+        self.set_par('T_FROM', self.get_par('TIME_FNL'))
+        self.set_par('T_TILL', self.get_par('TIME_FNL'))
+        infile = 'properties.in'
+        for record in self.pars[infile]:
+            for pname in self.pars[infile][record]:
+                if (type(self.get_par(pname)) is bool):
+                    self.set_par(pname, False)
+        self.set_par('GET_LR', True)
+        self.set_par('DATA_PSI', True)
+        self.set_par('DATA_CIC', True)
+        self.set_par('LR_MAXSIL', 1000)     #this seems to affect nothing
+        
+        #run
         self.write()
-        util.execute(self.bins[1], quiet)
+        util.execute(self.bins[1])
         dpath = 'DATA/getLR/'
-        for name in ['MC_anlsplot.out']:
+        for name in ['MC_anlsplotAll.out']:
             self.data[name] = io.extract_data(dpath + name)
-        mk_spec(self)
+        states.spec(self)
     
     def write(self):
         """Write MCTDHB parameters to input files."""
@@ -71,29 +136,21 @@ class MCTDHB(object):
         for infile in str_infiles:
             io.write_str_input(self.pars[infile], infile)
     
-    def basic_setup(self, dim=1):
-        """Basic parameter adjustment."""
-        # TODO: generalise to 3D
-        self.set_par('MB_JOB_TYPE', 'ALL')
-        self.set_par('DIM_MCTDHB', dim)
-        self.set_par('PRINT_DATA', False)
-        self.set_par('ORB_DIAG', True)
-    
-    def set_Npar(self, Npar):
+    def set_N(self, Npar):
         # set particle number
         if (Npar <= 0):
             raise ValueError
         self.set_par('Df_cnf_Fock', '')
         self.set_par('NPAR', Npar)
     
-    def set_Morb(self, Morb):
+    def set_M(self, Morb):
         # set number of orbitals
         if not (0 < Morb <= 12):
             raise ValueError
         self.set_par('Df_cnf_Fock', '')
         self.set_par('MORB', Morb)
     
-    def set_lambda(self, xlambda, normalize=False):
+    def set_L(self, xlambda, normalize=False):
         # set particle interaction strength
         if (normalize):
             xlambda /= self.get_par('Npar') - 1
@@ -107,21 +164,6 @@ class MCTDHB(object):
             self.set_par('W(R=|r1-r2|&t)', '')
         self.set_par('WXX_TYPE', Wxx)
     
-    def activate_LR(self):
-        """Activate LR and deactivate other properties."""
-        assert self.get_par('T_FROM') <= self.get_par('TIME_FNL')
-        self.set_par('T_FROM', self.get_par('TIME_FNL')-1)
-        self.set_par('T_TILL', self.get_par('TIME_FNL')-1)
-        infile = 'properties.in'
-        for record in self.pars[infile]:
-            for pname in self.pars[infile][record]:
-                if (type(self.get_par(pname)) is bool):
-                    self.set_par(pname, False)
-        self.set_par('GET_LR', True)
-        self.set_par('DATA_PSI', True)
-        self.set_par('DATA_CIC', True)
-        self.set_par('LR_MAXSIL', 1000)
-        
     def get_par(self, name):
         """Get MCTDHB parameter."""
         for infile in self.pars:
@@ -151,35 +193,6 @@ class MCTDHB(object):
                 if (pname in self.pars[infile][record]):
                     self.pars[infile][record][pname] = value
                     break
-    
-    def set_job(self, job):
-        """Basic job setup."""
-        if (job == 'relax'):
-            self.set_par('JOB_PREFAC', complex(-1, 0))
-            self.set_par('GUESS', 'HAND')
-            self.set_par('STATE', 1)        #relax to GS
-            self.set_par('TIME_BGN', 0.)
-            self.set_par('TIME_FNL', 15.)
-            self.set_par('TIME_TAU', .1)    #working relaxation step
-            self.set_par('TIME_PRINT_STEP', .1)
-            self.set_par('TIME_TOLERROR_TOTAL', 1E-8)
-        elif (job == 'relax_backward'):
-            self.set_job('relax')
-            self.set_par('JOB_PREFAC', complex(+1, 0))
-        elif (job == 'prop'):
-            self.set_par('JOB_PREFAC', complex(0, -1))
-            self.set_par('GUESS', 'BINR')
-            self.set_par('BINARY_START_POINT_T', 10.)
-            self.set_par('TIME_BGN', 0.)
-            self.set_par('TIME_FNL', 200.)
-            self.set_par('TIME_TAU', .01)   #initial propagation step
-            self.set_par('TIME_PRINT_STEP', .01)
-            self.set_par('TIME_TOLERROR_TOTAL', 1E-6)
-        elif (job == 'prop_backward'):
-            self.set_job('prop')
-            self.set_par('JOB_PREFAC', complex(0, +1))
-        else:
-            raise ValueError('unknown job name')
     
     def set_pot(self, pot):
         pass

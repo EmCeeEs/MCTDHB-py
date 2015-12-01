@@ -8,10 +8,10 @@ from src.mctdhb import MCTDHB
 from src.states import print_spec
 
 if __name__ == '__main__':
-    my = MCTDHB.restore()
-    my.set_Morb(2)
-    my.set_lambda(.1, False)
+    MCTDHB.restore()
+    my = MCTDHB()
+    my.set_M(2)
+    my.set_N(2)
+    my.set_L(.1, False)
     my.set_Wxx(0)
-    my.run('relax') 
-    my.run_properties()
-    print_spec(my.state)
+    my.relax(t_fnl=6.)

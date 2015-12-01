@@ -61,72 +61,35 @@ class State(object):
     
     def set_sym(self, sym):
         if (sym in SymType):
-            self._sym = SymType[sym]
+            self.sym = SymType[sym]
         elif (sym in SymType.values()):
-            self._sym = sym
+            self.sym = sym
         else:
             raise ValueError
     
     def set_E(self, erg):
         if isinstance(erg, float):
-            self._E = erg
+            self.E = erg
         else:
             raise TypeError
-    
-    def get_sym(self):
-        return self._sym
-    
-    def get_energy(self):
-        return self._E
-    
+ 
 class MCTDHBState(State):
     """Base class for states computed by MCTDHB."""
-    def __init__(self, npar, morb, occupation, xlambda, energy, sym=None):
+    def __init__(self, npar, morb, xlambda, energy, sym=None):
         State.__init__(self, energy, sym)
         # Set up nodes for MCTDHB (sweep) parameter.
         self.pars = dict()
         self.add_par('N', npar)
         self.add_par('M', morb)
         self.add_par('L', xlambda)
-        # Set up occupation numbers.
-        self.set_occ(occupation)
         
         # TODO: include potentials and time-dependency
     
-    @classmethod
-    def from_files(cls, time_slice):
-        """Read MCTDHB state from OutFiles."""
-        pass
-    
-    @classmethod
-    def from_mctdhb(cls, mctdhb_obj, sym=None):
-        pass
-        if isinstance(mctdhb_obj, MCTDHB):
-            return cls(mctdhb_obj.get_par('NPAR'),
-                       mctdhb_obj.get_par('MORB'),
-                       mctdhb_obj.get_par('XLAMBDA_0'),
-                       mctdhb_obj.data['M'],
-                       sym)
-        else:
-            raise TypeError
- 
-    def set_occ(self, occ_numbers):
-        if (len(occ_numbers) == self.get_pvalue('M')):
-            if all([isinstance(i, float) for i in occ_numbers]):
-                self._occ = occ_numbers
-            else:
-                raise TypeError
-        else:
-            raise Exception(
-                'Number of occupation numbers {} '.format(len(ooc_numbers))
-                + 'does not match '
-                + 'number of orbitals {}.'.format(self.get_pvalue('M')))
-    
     def add_par(self, pname, value, left=None, right=None):
         if (pname in self.pars):
-            raise KeyError(pname + ' already exists as a ParNode!')
+            raise KeyError(pname + ' already exists as a Node!')
         if isinstance(pname, str):
-            self.pars[pname] = ParNode(value, left, right)
+            self.pars[pname] = Node(value, left, right)
         else:
             raise TypeError
     
@@ -156,21 +119,31 @@ class MCTDHBState(State):
     
     def get_pright(self, pname):
         return self.pars[pname].get_right()
-    
+ 
 class GS(MCTDHBState):
     """GroundState as computed by MCTDHB."""
     def __init__(self, mctdhb_obj):
-        MCTDHBState.__init__(self, mctdhb_obj, SymType['g'])
-
-        #operator values per particle
+        # 'OP_PR.out' Operator values per particle:
+        # E, T, V, W, (xyz), (xyz)^2, var(xyz). (k_xyz), (k_xyz)^2, var(k_xyz)
         self.op = mctdhb_obj.data['OP_PR.out'][-1]
+        # 'NO_PR.out' Natural Occupation and Errors:
+        # NO[M], E, E_tolerance, dE(last iteration)
+        self.no = mctdhb_obj.data['NO_PR.out'][-1]
+        
+        MCTDHBState.__init__(
+                self,
+                mctdhb_obj.get_par('NPAR'),
+                mctdhb_obj.get_par('MORB'),
+                mctdhb_obj.get_par('XLAMBDA_0'),
+                self.no[1+mctdhb_obj.get_par('MORB')],
+                'g')
+         
         #energies constituents
         self.T = self.op[2]
         self.V = self.op[3]
         self.W = self.op[4]
-        print self.E/self.N, self.op[1]
-        assert abs(self.E/self.N - self.op[1]) < 1e-6
-        assert abs(self.E/self.N - (self.T + self.V + self.W)) < 1e-6
+        assert abs(self.E/self.get_pvalue('N') - self.op[1]) < 1e-6
+        assert abs(self.E/self.get_pvalue('N') - sum(self.op[2:5])) < 1e-6
         #x-space -- 3D
         self.x = self.op[5:8]
         self.xx = self.op[8:11]
@@ -179,7 +152,7 @@ class GS(MCTDHBState):
         self.k = self.op[14:17]
         self.kk = self.op[17:20]
         self.var_k = self.op[20:23]
-
+ 
 class ES(MCTDHBState):
     """ExcitedState as computed by LR-MCTDHB."""
     def __init__(self, pars, GS_obj):
@@ -226,7 +199,7 @@ class ES(MCTDHBState):
     def __repr__(self):
         return State.__repr__(self) + ', norm: ' + repr(self.norm)
 
-def mk_spec(mctdhb_obj):
+def spec(mctdhb_obj):
     """Make excitation spectrum for given GS."""
     data = mctdhb_obj.data['MC_anlsplot.out']
     state = mctdhb_obj.state
