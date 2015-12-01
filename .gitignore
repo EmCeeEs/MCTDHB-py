@@ -1,0 +1,18 @@
+# python stuff
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# MCTDHB stuff
+*.in
+*.out
+*.dat
+DATA/
+media/
+scripts/
+
+# Binaries
+boson_MCTDHB*
+properties_LR*
+CIc_bin
+PSI_bin
