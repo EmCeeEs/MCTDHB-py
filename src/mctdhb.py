@@ -19,10 +19,6 @@ class MCTDHB(object):
             self.pars[infile] = io.read_f90_input(infile)
         for infile in str_infiles:
             self.pars[infile] = io.read_str_input(infile)
-        # shortcuts for most important parameters (superfluous)
-        self.M = self.get_par('MORB')
-        self.N = self.get_par('NPAR')
-        self.L = self.get_par('XLAMBDA_0')
         
         # set executives
         self.bins = util.get_binaries()
@@ -36,9 +32,7 @@ class MCTDHB(object):
         """Inialize object from restored MCTDHB input files and binaries."""
         util.restore_infiles()
         util.restore_binaries()
-        inst = cls()
-        inst.basic_setup()
-        return inst
+        return cls()
     
     def run(self, job=None, quiet=False):
         """run MCTDHB"""

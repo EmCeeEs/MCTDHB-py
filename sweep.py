@@ -1,11 +1,11 @@
 #python2
 #marcustheisen@web.de
 
-"""sweep.py"""
+"""Sweeeep it like it's Christmas Eve."""
 #from __future__ import with_statement    # This isn't required in Python 2.6
 #from __future__ import print_function    # This is only possible for >= 2.6
-from mctdhb import MCTDHB
-from states import print_spec
+from src.mctdhb import MCTDHB
+from src.states import print_spec
 
 if __name__ == '__main__':
     my = MCTDHB.restore()

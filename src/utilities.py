@@ -2,24 +2,18 @@
 #marcustheisen@web.de
 
 """Provides basic classes and functions"""
-from collections import OrderedDict
 import subprocess as subp
 import os
+import os.path
 import glob
 
 # TODO: Include Scripts and Templates
-
-class ViviDict(OrderedDict):
-    """Implementation of perl's autovivification feature."""
-    def __missing__(self, key):
-        value = self[key] = type(self)()
-        return value
 
 def mctdhb_path():
     """Return shell environment variable 'mctdhb_dir'."""
     path = os.getenv('mctdhb_dir')
     if (path is None):
-        raise EnvironmentError("Shell environment 'mctdhb_dir' not set!")
+        raise EnvironmentError("'mctdhb_dir' not set!")
     return path
 
 def restore_infiles():
@@ -46,16 +40,23 @@ def get_binaries():
     properties = glob.glob('properties_LR*')
     if (len(mctdhb) != 1) or (len(properties) != 1):
         raise EnvironmentError('Could not find unambiguous MCTDHB binaries!')
+    print 'Binary files are ' + mctdhb[0] + ' and ' + properties[0] + '.'
     return tuple(mctdhb + properties)
 
 def execute(binary, quiet=False):
-    """execute(binary, quiet=True) -> int
-    
-    Execute binary.
-    """
+    """execute(binary, quiet=False)"""
     if (quiet):
-        #catch everything from stdout and sterr and return it
-        subp.check_output([binary], stderr=subp.STDOUT)
+        # Catch everything from stdout and sterr and return it.
+        # If exit status of program is non-zero,
+        # raise subprocess.CalledProcessError.
+        subp.check_output(['./' + binary], stderr=subp.STDOUT)
     else:
-        #print everything
-        subp.check_call([binary])
+        # Print everything and return exit status.
+        print binary
+        subp.check_call(['./' + binary])
+
+def mk_dir(directory):
+    """Create folder if not existing."""
+    # Beware race-condition???
+    if not os.path.exists(directory):
+        os.makedirs(directory)

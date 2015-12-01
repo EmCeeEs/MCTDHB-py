@@ -1,6 +1,11 @@
-#old stuff
+class ViviDict(dict):
+    """Implementation of perl's autovivification feature."""
+    def __missing__(self, key):
+        value = self[key] = type(self)()
+        return value
+
 def get_par_value(pars, name):
-    """get parameter value"""
+    """Get par value."""
     #search parameter dictionary recursively
     for par in pars:
         if isinstance(pars[par], dict):
@@ -24,7 +29,7 @@ def get_par_value(pars, name):
     raise ValueError(name, 'is no MCTDHB parameter or not set')
 
 def set_par_value(pars, name, value):
-    """set parameter value"""
+    """Set par value."""
     old_value = get_par_value(pars, name)
     if (type(value) is not type(old_value)):
         raise TypeError
@@ -41,7 +46,9 @@ def set_par_value(pars, name, value):
 
 #depreciated & stupidity: tuples do not exist in f90
 def from_f90_old(fstring):
-    # convert from Fortran readable string to python equivalent type
+    """Recursively convert from Fortran
+    readable string to Python equivalent type.
+    """
     fstring = fstring.strip()
     if (fstring == ''):     #empty
         return None

@@ -17,7 +17,7 @@ MIN_RESPONSE = 1e-8
 MIN_DIFF = 0.5
 
 class Node(object):
-    """MCTDHB parameter class. Providing two links for sweeps."""
+    """Parameter node providing a value and two links."""
     # maybe better to pass and (store?) neighbors as tuples
     # i.e. neighbors=(None, state)
     def __init__(self, value, left=None, right=None):
@@ -93,6 +93,23 @@ class MCTDHBState(State):
         
         # TODO: include potentials and time-dependency
     
+    @classmethod
+    def from_files(cls, time_slice):
+        """Read MCTDHB state from OutFiles."""
+        pass
+    
+    @classmethod
+    def from_mctdhb(cls, mctdhb_obj, sym=None):
+        pass
+        if isinstance(mctdhb_obj, MCTDHB):
+            return cls(mctdhb_obj.get_par('NPAR'),
+                       mctdhb_obj.get_par('MORB'),
+                       mctdhb_obj.get_par('XLAMBDA_0'),
+                       mctdhb_obj.data['M'],
+                       sym)
+        else:
+            raise TypeError
+ 
     def set_occ(self, occ_numbers):
         if (len(occ_numbers) == self.get_pvalue('M')):
             if all([isinstance(i, float) for i in occ_numbers]):
@@ -140,23 +157,6 @@ class MCTDHBState(State):
     def get_pright(self, pname):
         return self.pars[pname].get_right()
     
-    @classmethod
-    def from_files(cls, time_slice):
-        """Read MCTDHB state from OutFiles."""
-        pass
-        for fname in ['NO_PR.out', 'OP_PR.out']:
-    
-    @classmethod
-    def from_mctdhb(cls, mctdhb_obj, sym=None):
-        if isinstance(mctdhb_obj, MCTDHB):
-            return cls(mctdhb_obj.get_par('NPAR'),
-                       mctdhb_obj.get_par('XLAMBDA_0'),
-                       mctdhb_obj.get_par('MORB'),
-                       mctdhb_obj.get_par(
-                       sym)
-        else:
-            raise TypeError
- 
 class GS(MCTDHBState):
     """GroundState as computed by MCTDHB."""
     def __init__(self, mctdhb_obj):
