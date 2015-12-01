@@ -250,7 +250,7 @@ def print_spec(GS_obj, Nstates=20):
         else:
             break
 
-#unused
+#not in use
 def to_file(filename, data):
     with open(filename, 'w') as out:
         for i in range(data.shape[0]):

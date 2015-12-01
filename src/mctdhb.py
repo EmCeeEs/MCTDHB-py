@@ -4,7 +4,6 @@
 """mctdhb.py"""
 import utilities as util
 import io_routines as io
-from states import GS, mk_spec
 
 f90_infiles = ['input.in', 'properties.in']
 str_infiles = ['V_W_Psi_string.in']
@@ -12,7 +11,7 @@ str_infiles = ['V_W_Psi_string.in']
 class MCTDHB(object):
     """MCTDHB class"""
     def __init__(self):
-        """Initalise MCTDHB object from current input files"""
+        """Initalize MCTDHB object from current input files"""
         # extract parameters
         self.pars = dict()
         for infile in f90_infiles:
@@ -29,11 +28,17 @@ class MCTDHB(object):
     
     @classmethod
     def restore(cls):
-        """Inialize object from restored MCTDHB input files and binaries."""
+        """Restore MCTDHB input files and binaries."""
         util.restore_infiles()
         util.restore_binaries()
-        return cls()
     
+    def relax(self, backward=False):
+        if (backward):
+            self.run(job='relax_backward')
+        else:
+            self.run(job='relax')
+        
+
     def run(self, job=None, quiet=False):
         """run MCTDHB"""
         if (job):
@@ -71,9 +76,6 @@ class MCTDHB(object):
         # TODO: generalise to 3D
         self.set_par('MB_JOB_TYPE', 'ALL')
         self.set_par('DIM_MCTDHB', dim)
-#       for char in 'XYZ':
-#           self.set_par('TIME_DVRMETHOD' + char, 4)  #FFT
-#           self.set_par('ND' + char, 128)
         self.set_par('PRINT_DATA', False)
         self.set_par('ORB_DIAG', True)
     

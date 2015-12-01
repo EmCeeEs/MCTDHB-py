@@ -40,19 +40,18 @@ def get_binaries():
     properties = glob.glob('properties_LR*')
     if (len(mctdhb) != 1) or (len(properties) != 1):
         raise EnvironmentError('Could not find unambiguous MCTDHB binaries!')
-    print 'Binary files are ' + mctdhb[0] + ' and ' + properties[0] + '.'
+    print('Binary files are ' + mctdhb[0] + ' and ' + properties[0] + '.')
     return tuple(mctdhb + properties)
 
 def execute(binary, quiet=False):
     """execute(binary, quiet=False)"""
+    # If exit status of program is non-zero,
+    # raise subprocess.CalledProcessError.
     if (quiet):
         # Catch everything from stdout and sterr and return it.
-        # If exit status of program is non-zero,
-        # raise subprocess.CalledProcessError.
         subp.check_output(['./' + binary], stderr=subp.STDOUT)
     else:
         # Print everything and return exit status.
-        print binary
         subp.check_call(['./' + binary])
 
 def mk_dir(directory):
