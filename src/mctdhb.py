@@ -16,12 +16,7 @@ class MCTDHB(object):
     def __init__(self):
         """Initalize MCTDHB object from current input files"""
         # extract parameters
-        self.pars = dict()
-        for infile in f90_infiles:
-            self.pars[infile] = io.read_f90_input(infile)
-        for infile in str_infiles:
-            self.pars[infile] = io.read_str_input(infile)
-        
+        self.read()
         # set executives
         self.bins = util.get_binaries()
         
@@ -129,12 +124,30 @@ class MCTDHB(object):
             self.data[name] = io.extract_data(dpath + name)
         states.spec(self)
     
+    def run(self, quiet=False):
+        """Run the MCTDHB package."""
+        self.write()
+        util.execute(self.bins[1], quiet)
+    
+    def run_properties(self, quiet=False):
+        """Compute MCTDHB properties."""
+        self.write()
+        util.execute(self.bins[0], quiet)
+    
     def write(self):
         """Write MCTDHB parameters to input files."""
         for infile in f90_infiles:
             io.write_f90_input(self.pars[infile], infile)
         for infile in str_infiles:
             io.write_str_input(self.pars[infile], infile)
+    
+    def read(self):
+        """Read MCTDHB parameters from input files."""
+        self.pars = dict()
+        for infile in f90_infiles:
+            self.pars[infile] = io.read_f90_input(infile)
+        for infile in str_infiles:
+            self.pars[infile] = io.read_str_input(infile)
     
     def set_N(self, Npar):
         # set particle number
