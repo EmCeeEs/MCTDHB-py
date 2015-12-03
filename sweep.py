@@ -5,13 +5,13 @@
 #from __future__ import with_statement    # This isn't required in Python 2.6
 #from __future__ import print_function    # This is only possible for >= 2.6
 from src.mctdhb import MCTDHB
-from src.states import print_spec
+import src.routines as subr
 
 if __name__ == '__main__':
-    MCTDHB.restore()
-    my = MCTDHB()
+    my = MCTDHB(True)
     my.set_M(2)
     my.set_N(2)
     my.set_L(.1, False)
-    my.set_Wxx(0)
-    my.relax(t_fnl=6.)
+    my.set_xtype(0)
+    a = subr.relax(my)
+    repr(a)

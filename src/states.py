@@ -2,6 +2,7 @@
 #marcustheisen@web.de
 
 import io_routines as io
+from mctdhb import MCTDHB
 
 NormType = dict(phi=0, ci=1)
 SymType = dict(m=0, mixed=0,
@@ -9,16 +10,16 @@ SymType = dict(m=0, mixed=0,
                g=2, gerade=2,
                unknown=None)
 
-#MaxError for LR normalization
+# MaxError for LR normalization.
 ERR_NORM = 1e-10
-#Minimal responce amplitude
+# Minimal response amplitude.
 MIN_RESPONSE = 1e-8
-#Percentaged difference to distinguish between u and g states
+# Percentaged difference to distinguish between u and g states.
 MIN_DIFF = 0.5
 
 class Node(object):
     """Parameter node providing a value and two links."""
-    # maybe better to pass and (store?) neighbors as tuples
+    # May be better to pass and (store?) neighbors as tuples...
     # i.e. neighbors=(None, state)
     def __init__(self, value, left=None, right=None):
         self.set_value(value)
@@ -87,29 +88,17 @@ class MCTDHBState(State):
     
     def add_par(self, pname, value, left=None, right=None):
         if (pname in self.pars):
-            raise KeyError(pname + ' already exists as a Node!')
-        if isinstance(pname, str):
-            self.pars[pname] = Node(value, left, right)
-        else:
-            raise TypeError
+            raise Exception(pname + ' already exists!')
+        self.pars[pname] = Node(value, left, right)
     
     def set_pvalue(self, pname, value):
-        if (pname in self.pars):
-            self.pars[pname].set_value(value)
-        else:
-            raise ValueError
+        self.pars[pname].set_value(value)
     
     def set_pleft(self, pname, state):
-        if (pname in self.pars):
-            self.pars[pname].set_left(state)
-        else:
-            raise ValueError
+        self.pars[pname].set_left(state)
     
     def set_pright(self, pname, state):
-        if (pname in self.pars):
-            self.pars[pname].set_right(state)
-        else:
-            raise ValueError
+        self.pars[pname].set_right(state)
     
     def get_pvalue(self, pname):
         return self.pars[pname].get_value()
@@ -122,50 +111,34 @@ class MCTDHBState(State):
  
 class GS(MCTDHBState):
     """GroundState as computed by MCTDHB."""
-    def __init__(self, mctdhb_obj):
-        # 'OP_PR.out' Operator values per particle:
-        # E, T, V, W, (xyz), (xyz)^2, var(xyz). (k_xyz), (k_xyz)^2, var(k_xyz)
-        self.op = mctdhb_obj.data['OP_PR.out'][-1]
-        # 'NO_PR.out' Natural Occupation and Errors:
-        # NO[M], E, E_tolerance, dE(last iteration)
-        self.no = mctdhb_obj.data['NO_PR.out'][-1]
+    def __init__(self, obj, data):
+        if not isinstance(obj, MCTDHB):
+            raise TypeError
         
-        MCTDHBState.__init__(
-                self,
-                mctdhb_obj.get_par('NPAR'),
-                mctdhb_obj.get_par('MORB'),
-                mctdhb_obj.get_par('XLAMBDA_0'),
-                self.no[1+mctdhb_obj.get_par('MORB')],
-                'g')
-         
-        #energies constituents
-        self.T = self.op[2]
-        self.V = self.op[3]
-        self.W = self.op[4]
+        self.op, self.no = data
+        MCTDHBState.__init__(self, obj.get_N(), obj.get_M(), obj.get_L(),
+                             self.no[obj.get_M()+1], sym='g')
+        
         assert abs(self.E/self.get_pvalue('N') - self.op[1]) < 1e-6
         assert abs(self.E/self.get_pvalue('N') - sum(self.op[2:5])) < 1e-6
-        #x-space -- 3D
-        self.x = self.op[5:8]
-        self.xx = self.op[8:11]
-        self.var_x = self.op[11:14]
-        #k-space -- 3D
-        self.k = self.op[14:17]
-        self.kk = self.op[17:20]
-        self.var_k = self.op[20:23]
  
 class ES(MCTDHBState):
     """ExcitedState as computed by LR-MCTDHB."""
-    def __init__(self, pars, GS_obj):
-        self.GS = GS_obj            #link to corresponding GS object
-        self.i = int(pars[0]) - 10 - 2*GS_obj.M
-        self.E_i = pars[1]
-        self.E = pars[2]
-        #print abs(self.E - (self.GS.E*self.GS.N + self.E_i))
+    def __init__(self, GS_obj, data):
+        if not isinstance(GS_obj, GS):
+            raise TypeError
+        self.GS = GS_obj
+        # 'MC_anlsplotALL.out' contains 100 LR roots:
+        # root -- i + 10 + 2*M
+        # energies -- E [1], E_i [2]
+        # norm -- orbital-, CI-part [3:5]
+        # response amplitudes -- f+=f-=x [5], x**2 [6]
+        self.data = data
+        
+        MCTDHBState.__init__(self, obj.get_N(), obj.get_M(), obj.get_L(),
+                             self.no[obj.get_M()+1], sym='g')
+        self.i = int(pars[0]) - 10 - 2*self.GS.M
         assert abs(self.E - (self.GS.E + self.E_i)) < 1e-6
-        self.norm_phi = pars[3]         #negative roots have negative norm
-        self.norm_ci = pars[4]
-        self.amp_u = pars[5]          #sum orbital(PHI) and coeff(CI) parts
-        self.amp_g = pars[6]
         self.set_sym()
     
     def set_sym(self):
@@ -199,10 +172,10 @@ class ES(MCTDHBState):
     def __repr__(self):
         return State.__repr__(self) + ', norm: ' + repr(self.norm)
 
-def spec(mctdhb_obj):
+def spec(GS_obj):
     """Make excitation spectrum for given GS."""
-    data = mctdhb_obj.data['MC_anlsplot.out']
-    state = mctdhb_obj.state
+    data = io.extract_data['MC_anlsplotALL.out']
+    state = GS_obj
     for dstate in data:
         new_state = ES(dstate, mctdhb_obj.state)
         if (new_state.i > 0):

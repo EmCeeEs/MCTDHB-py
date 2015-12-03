@@ -7,6 +7,7 @@ import os
 import os.path
 #import os.stat
 import glob
+import shutil
 
 # TODO: Include Scripts and Templates
 
@@ -44,10 +45,16 @@ def get_binaries():
     print('Binary files are ' + mctdhb[0] + ' and ' + properties[0] + '.')
     return tuple(mctdhb + properties)
 
-def execute(binary, quiet=False):
-    """execute(binary, quiet=False)"""
+def execute(command, quiet=False):
+    """execute(command, quiet=False)"""
+    popen = subp.Popen(command, stdout=subp.PIPE)
+    lines_iterator = iter(popen.stdout.readline, b"")
+    for line in lines_iterator:
+        print line # yield line
+        #print 'waiting...'
+    return
     # If exit status of program is non-zero,
-    # always raise subprocess.CalledProcessError.
+    # always raise subp.CalledProcessError.
     path = './'
     if (quiet):
         # Catch everything from stdout and sterr and return it.
@@ -55,6 +62,14 @@ def execute(binary, quiet=False):
     else:
         # Print everything and return exit status.
         subp.check_call([path + binary])
+
+def rm_output():
+    """Remove existing MCTDHB output data."""
+    if os.path.isdir('DATA'):
+        shutil.rmtree('DATA') 
+    outfiles = glob.glob('*.out') + glob.glob('*.dat')
+    for outfile in outfiles:
+        os.remove(outfile)
 
 def mk_dir(directory):
     """Create folder if not existing."""
