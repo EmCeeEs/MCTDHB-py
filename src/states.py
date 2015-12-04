@@ -118,83 +118,58 @@ class GS(MCTDHBState):
         self.op, self.no = data
         MCTDHBState.__init__(self, obj.get_N(), obj.get_M(), obj.get_L(),
                              self.no[obj.get_M()+1], sym='g')
-        
+        self.add_par('i', 0) 
         assert abs(self.E/self.get_pvalue('N') - self.op[1]) < 1e-6
         assert abs(self.E/self.get_pvalue('N') - sum(self.op[2:5])) < 1e-6
  
 class ES(MCTDHBState):
     """ExcitedState as computed by LR-MCTDHB."""
-    def __init__(self, GS_obj, data):
-        if not isinstance(GS_obj, GS):
+    def __init__(self, obj, data):
+        if not isinstance(obj, GS):
             raise TypeError
-        self.GS = GS_obj
-        # 'MC_anlsplotALL.out' contains 100 LR roots:
-        # root -- i + 10 + 2*M
-        # energies -- E [1], E_i [2]
-        # norm -- orbital-, CI-part [3:5]
-        # response amplitudes -- f+=f-=x [5], x**2 [6]
+        assert abs(data[2] - (obj.E + data[1])) < 1e-6
+        self.GS = obj
         self.data = data
+        MCTDHBState.__init__(self, obj.get_pvalue('N'),
+                obj.get_pvalue('M'), obj.get_pvalue('L'),
+                data[2], sym=guess_sym())
         
-        MCTDHBState.__init__(self, obj.get_N(), obj.get_M(), obj.get_L(),
-                             self.no[obj.get_M()+1], sym='g')
-        self.i = int(pars[0]) - 10 - 2*self.GS.M
-        assert abs(self.E - (self.GS.E + self.E_i)) < 1e-6
-        self.set_sym()
+        self.set_norm()
+        # Enumerate excited states.
+        self.add_par('i', int(pars[0]) - 10 - 2*GS_obj.get_pvalue('M'))
     
-    def set_sym(self):
+    def guess_sym(self):
         """Try to derive symmetry of ES."""
-        #check normalization
-        if (self.GS.M == 1):
-            assert abs(abs(self.norm_phi) - 1) < ERR_NORM
-            assert abs(self.norm_ci) < ERR_NORM
+        #check response amplitudes
+        if all(amp < MIN_RESPONSE for amp in self.data[5:7]):
+            retval = SymType['unknown']
+        elif abs(self.data[5]-self.data[6]) < MIN_RESPONSE:
+            retval = SymType['unknown']
+        elif (self.data[5]/self.data[6] < MIN_DIFF):
+            retval = SymType['gerade']
+        elif (self.data[6]/self.data[5] < MIN_DIFF):
+            retval = SymType['ungerade']
         else:
-            assert abs(abs(self.norm_phi+self.norm_ci) - 1) < ERR_NORM
+            retval = SymType['mixed']
+        return retval
+    
+    def set_norm(self):
+        """Guess normalization type."""
+        if (self.get_pvalue('M') == 1):
+            assert abs(abs(self.data[3]) - 1) < ERR_NORM
+            assert abs(self.data[4]) < ERR_NORM
+        else:
+            assert abs(sum(self.data[3:5]) - 1) < ERR_NORM
         
-        if (self.norm_ci < self.norm_phi):
+        if (self.data[3] < self.data[4]):
             self.norm = NormType['phi']
             self.norm = 'phi'
         else:
             self.norm = NormType['ci']
             self.norm = 'ci'
-        
-        #check response amplitudes
-        if (self.amp_g < MIN_RESPONSE) and (self.amp_u < MIN_RESPONSE):
-            self.sym = SymType['unknown']
-        elif (abs(self.amp_u-self.amp_g) < MIN_RESPONSE):
-            self.sym = SymType['unknown']
-        elif (self.amp_u/self.amp_g < MIN_DIFF):
-            self.sym = SymType['gerade']
-        elif (self.amp_g/self.amp_u < MIN_DIFF):
-            self.sym = SymType['ungerade']
-        else:
-            self.sym = SymType['mixed']
-    
+     
     def __repr__(self):
         return State.__repr__(self) + ', norm: ' + repr(self.norm)
-
-def spec(GS_obj):
-    """Make excitation spectrum for given GS."""
-    data = io.extract_data['MC_anlsplotALL.out']
-    state = GS_obj
-    for dstate in data:
-        new_state = ES(dstate, mctdhb_obj.state)
-        if (new_state.i > 0):
-            state.set_neighbor('E', right=new_state)
-            new_state.set_neighbor('E', left=state)
-            assert (state is not new_state)
-            state = new_state
-            assert (state is new_state)
-
-def print_spec(GS_obj, Nstates=20):
-    state = GS_obj
-    count = 0
-    while (state.neighbors['E'].right != None):
-        print repr(state)
-        state = state.neighbors['E'].right
-        if (count < Nstates):
-            count += 1
-        else:
-            break
 
 #not in use
 def to_file(filename, data):

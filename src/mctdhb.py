@@ -127,6 +127,13 @@ class MCTDHB(object):
                     self._pars[infile][record][pname] = value
                     break
     
+    def unset_properties(self):
+        infile = 'properties.in'
+        for record in self._pars[infile]:
+            for pname in self._pars[infile][record]:
+                if (type(self.get_par(pname)) is bool):
+                    self.set_par(pname, False)
+    
     def set_pot(self, pot):
         pass
     

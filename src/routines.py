@@ -3,7 +3,7 @@
 
 """Basic routines for working with MCTDHB."""
 from mctdhb import MCTDHB
-from states import GS
+from states import GS, ES
 from utilities import rm_output
 import io_routines as io
 
@@ -11,7 +11,7 @@ def basic_setup(dim):
     pass
 
 def relax(obj, tolerance=1E-8, t_tau=.1, t_max=20,
-          backward=False, properties=True):
+          backward=False, LR=False):
     """relax(mctdhb obj) -> GS object
     
     Find system's GroundState (GS).
@@ -72,7 +72,43 @@ def relax(obj, tolerance=1E-8, t_tau=.1, t_max=20,
     data = []
     for outfile in ['OP_PR.out', 'NO_PR.out']:
         data.append(io.extract_data(outfile)[-1])
-    return GS(obj, data) 
+    if (LR):
+        return linear_response(GS(obj, data), obj.get_par('TIME_FNL'))
+    else:
+        return GS(obj, data) 
+
+def linear_response(GS_obj, time_slice):
+    """Compute MCTDHB-LR."""
+    if not isinstance(GS_obj, GS):
+        raise TypeError
+    LR = MCTDHB()
+    LR.set_par('T_FROM', time_slice)
+    LR.set_par('T_TILL', time_slice)
+    LR.unset_properties()
+    LR.set_par('GET_LR', True)
+    LR.set_par('DATA_PSI', True)
+    LR.set_par('DATA_CIC', True)
+    LR.set_par('LR_MAXSIL', 1000)     #this seems to affect nothing
+    
+    #run
+    LR.run_properties()
+    # 'MC_anlsplotALL.out' contains 100 LR roots:
+    # root -- i + 10 + 2*M
+    # energies -- dE_i = E_i-E_0 [1], E_0 [2]
+    # norm -- orbital-, CI-part [3:5]
+    # response amplitudes -- f+=f-=x [5], x**2 [6]
+    dpath = 'DATA/getLR/'
+    state = GS_obj
+    for dstate in io.extract_data(dpath + 'MC_anlsplotAll.out'):
+        new_state = ES(GS_obj, dstate)
+        if (new_state.get_pvalue('i') > 0):
+            state.set_pright('E', new_state)
+            new_state.set_pleft('E', state)
+            assert (new_state.get_pvalue('i')-1 == state.get_pvalue('i')) 
+            assert (state is not new_state)
+            state = new_state
+            assert (state is new_state)
+    return GS_obj
 
 def prop(obj, tolerance=1E-6, t_final=200., backward=False, guess='BINR',
          print_step=.01):
@@ -109,27 +145,13 @@ def prop(obj, tolerance=1E-6, t_final=200., backward=False, guess='BINR',
     obj.write()
     util.execute(obj.bins[0])
 
-def linear_response(self):
-    """Compute MCTDHB-LR."""
-    if (self.state is None):
-        raise Exception('No relaxed state to start from.')
-    self.set_par('T_FROM', self.get_par('TIME_FNL'))
-    self.set_par('T_TILL', self.get_par('TIME_FNL'))
-    infile = 'properties.in'
-    for record in self.pars[infile]:
-        for pname in self.pars[infile][record]:
-            if (type(self.get_par(pname)) is bool):
-                self.set_par(pname, False)
-    self.set_par('GET_LR', True)
-    self.set_par('DATA_PSI', True)
-    self.set_par('DATA_CIC', True)
-    self.set_par('LR_MAXSIL', 1000)     #this seems to affect nothing
-    
-    #run
-    self.write()
-    util.execute(self.bins[1])
-    dpath = 'DATA/getLR/'
-    for name in ['MC_anlsplotAll.out']:
-        self.data[name] = io.extract_data(dpath + name)
-    states.spec(self)
-    
+def print_spec(GS_obj, Nstates=20):
+    state = GS_obj
+    count = 0
+    while (state.get_pright('i') != None):
+        print repr(state)
+        state = state.get_pright('i')
+        if (count < Nstates):
+            count += 1
+        else:
+            break

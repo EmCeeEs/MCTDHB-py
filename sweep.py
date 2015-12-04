@@ -13,5 +13,5 @@ if __name__ == '__main__':
     my.set_N(2)
     my.set_L(.1, False)
     my.set_xtype(0)
-    a = subr.relax(my)
-    repr(a)
+    state = subr.relax(my, LR=True)
+    subr.print_spec(state)
