@@ -66,8 +66,10 @@ def execute(command, quiet=False):
 
 def rm_output():
     """Remove existing MCTDHB output data."""
-    if os.path.isdir('DATA'):
-        shutil.rmtree('DATA') 
+    dirs = ['DATA', 'media']
+    for d in dirs:
+        if os.path.isdir(d):
+            shutil.rmtree(d) 
     outfiles = glob.glob('*.out') + glob.glob('*.dat')
     for outfile in outfiles:
         os.remove(outfile)
