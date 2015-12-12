@@ -1,9 +1,9 @@
-#python2
+#python3.5
 #marcustheisen@web.de
 
 """mctdhb.py"""
-import utilities as util
-import io_routines as io
+import src.utilities as util
+import src.io_routines as io
 
 f90_infiles = ['input.in', 'properties.in']
 str_infiles = ['V_W_Psi_string.in']
@@ -78,12 +78,12 @@ class MCTDHB(object):
         self.set_par('Df_cnf_Fock', '')
         self.set_par('MORB', morb)
     
-    def set_L(self, xlambda, normalize=False):
+    def set_L(self, xlambda, Lcap=False):
         """Set particle interaction strength.
-        If normalize, set GP equivalent L=l*(N-1).
+        If normalize, set GP equivalent Lcap=xlambda*(N-1) instead.
         """
-        if (normalize):
-            xlambda /= self.get_par('NPAR') - 1.
+        if (Lcap):
+            xlambda /= self.get_N() - 1.
         self.set_par('XLAMBDA_0', float(xlambda))
     
     def set_xtype(self, xtype):

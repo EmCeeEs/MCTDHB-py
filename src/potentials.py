@@ -1,4 +1,4 @@
-#python2
+#python3.5
 #marcustheisen@web.de
 
 """potentials.py"""

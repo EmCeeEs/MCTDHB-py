@@ -1,8 +1,8 @@
-#python2
+#python3.5
 #marcustheisen@web.de
 
-import io_routines as io
-from mctdhb import MCTDHB
+import src.io_routines as io
+from src.mctdhb import MCTDHB
 
 NormType = dict(phi=0, ci=1)
 SymType = dict(m=0, mixed=0,
@@ -73,6 +73,9 @@ class State(object):
             self.E = erg
         else:
             raise TypeError
+    
+    def __repr__(self):
+        return 'energy: ' + repr(self.E) + ' sym: ' + repr(self.sym)
  
 class MCTDHBState(State):
     """Base class for states computed by MCTDHB."""
@@ -108,7 +111,7 @@ class MCTDHBState(State):
     
     def get_pright(self, pname):
         return self.pars[pname].get_right()
- 
+
 class GS(MCTDHBState):
     """GroundState as computed by MCTDHB."""
     def __init__(self, obj, data):
@@ -132,22 +135,24 @@ class ES(MCTDHBState):
         self.data = data
         MCTDHBState.__init__(self, obj.get_pvalue('N'),
                 obj.get_pvalue('M'), obj.get_pvalue('L'),
-                data[2], sym=guess_sym())
+                data[2], sym=self.guess_sym())
         
         self.set_norm()
         # Enumerate excited states.
-        self.add_par('i', int(pars[0]) - 10 - 2*GS_obj.get_pvalue('M'))
+        self.add_par('i', int(data[0]) - 10 - 2*obj.get_pvalue('M'))
     
     def guess_sym(self):
         """Try to derive symmetry of ES."""
         #check response amplitudes
-        if all(amp < MIN_RESPONSE for amp in self.data[5:7]):
+        odd = self.data[5:7]
+        even = self.data[7:9]
+        if sum(odd) < MIN_RESPONSE and sum(even) < MIN_RESPONSE:
             retval = SymType['unknown']
-        elif abs(self.data[5]-self.data[6]) < MIN_RESPONSE:
+        elif abs(sum(odd) - sum(even)) < MIN_RESPONSE:
             retval = SymType['unknown']
-        elif (self.data[5]/self.data[6] < MIN_DIFF):
+        elif (sum(odd)/sum(even) < MIN_DIFF):
             retval = SymType['gerade']
-        elif (self.data[6]/self.data[5] < MIN_DIFF):
+        elif (sum(even)/sum(odd) < MIN_DIFF):
             retval = SymType['ungerade']
         else:
             retval = SymType['mixed']
@@ -159,7 +164,8 @@ class ES(MCTDHBState):
             assert abs(abs(self.data[3]) - 1) < ERR_NORM
             assert abs(self.data[4]) < ERR_NORM
         else:
-            assert abs(sum(self.data[3:5]) - 1) < ERR_NORM
+            #print(sum(self.data[3:5]))
+            assert abs(abs(sum(self.data[3:5])) - 1) < ERR_NORM
         
         if (self.data[3] < self.data[4]):
             self.norm = NormType['phi']

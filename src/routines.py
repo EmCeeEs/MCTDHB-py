@@ -1,24 +1,24 @@
-#python2
+#python3.5
 #marcustheisen@web.de
 
 """Basic routines for working with MCTDHB."""
-from mctdhb import MCTDHB
-from states import GS, ES
-from utilities import rm_output
-import io_routines as io
+from src.mctdhb import MCTDHB
+from src.states import GS, ES
+from src.utilities import rm_output
+import src.io_routines as io
 
 def basic_setup(dim):
     pass
 
-def relax(obj, tolerance=1E-8, t_tau=.1, t_max=20,
+def relax(obj, tolerance=1E-12, t_tau=.1, t_max=20,
           backward=False, LR=False):
     """relax(mctdhb obj) -> GS object
     
     Find system's GroundState (GS).
     keyword arguments:
-    tolerance = 1E-8 -- tolerated energy error
-    t_tau = 0.1 -- working relaxation step
-    max_time = 20 -- maximal time allowed for convergance
+    tolerance = 1E-12 -- tolerated energy error of relaxed state
+    t_tau = 0.1 -- working relaxation step (iteration step)
+    max_time = 20 -- maximal time allowed until convergance
     backward = False -- backward relaxation
     properties = True -- compute GS properties
     """
@@ -28,10 +28,13 @@ def relax(obj, tolerance=1E-8, t_tau=.1, t_max=20,
         obj.set_par('JOB_PREFAC', complex(-1, 0))
     if (t_tau <= 2):
         obj.set_par('TIME_TAU', t_tau)
+        obj.set_par('TIME_PRINT_STEP', t_tau)   #each iteration print data
     else:
         obj.set_par('TIME_TAU', .1)
+        obj.set_par('TIME_PRINT_STEP', .1)
     obj.set_par('TIME_TOLERROR_TOTAL', tolerance)
-    obj.set_par('PRINT_DATA', False)    #no need to print
+    obj.set_par('TIME_ICI_PRT', 1)      #create as many coef data points as time data points
+    obj.set_par('PRINT_DATA', False)    #no need to explicitly print *.dat
     obj.set_par('STATE', 1)             #relax to GS
     
     # Iterating piecewise allows feeback of converge status
@@ -40,25 +43,25 @@ def relax(obj, tolerance=1E-8, t_tau=.1, t_max=20,
     time_step = 2
     obj.set_par('GUESS', 'HAND')        #first guess
     obj.set_par('TIME_BGN', time)
-    obj.set_par('TIME_FNL', time_step)
+    obj.set_par('TIME_FNL', time_step + t_tau)
     while True:
         rm_output()
         obj.run()
-        print 'running'
         # Energy difference of last iteration step.
-        dE = io.extract_data('NO_PR.out')[-1][obj.get_M()+3]
+        dE = io.extract_data('NO_PR.out')[-1][obj.get_M()+4]
+        print(dE)
         if (dE < tolerance):
-            print 'converged'
+            print('converged')
             break
         if (time >= t_max):
-            print 'not converged'
-            break
-        else:
-            time += time_step
-            obj.set_par('GUESS', 'BINR')        #next guess
-            obj.set_par('BINARY_START_POINT_T', time)
-            obj.set_par('TIME_BGN', time)
-            obj.set_par('TIME_FNL', time + time_step)
+            print('not converged')
+            raise RuntimeError
+        
+        time += time_step
+        obj.set_par('GUESS', 'BINR')        #next guess
+        obj.set_par('BINARY_START_POINT_T', time)
+        obj.set_par('TIME_BGN', time)
+        obj.set_par('TIME_FNL', time + time_step + t_tau)
     
     # 'OP_PR.out' -- Operator values per particle per iteration:
     # iteration time -- [0]
@@ -68,12 +71,13 @@ def relax(obj, tolerance=1E-8, t_tau=.1, t_max=20,
     # 'NO_PR.out' Natural Occupation and Errors per iteration:
     # iteration time -- [0]
     # occupation numbers -- [1:M+1]
-    # energy errors -- E, E_tolerance, dE
+    # energy errors -- E, E_tolerance, dE/E_tolerance, abs(dE),
+    #                   abs(dE_ci), abs(dE) - abs(dE_ci)
     data = []
     for outfile in ['OP_PR.out', 'NO_PR.out']:
         data.append(io.extract_data(outfile)[-1])
     if (LR):
-        return linear_response(GS(obj, data), obj.get_par('TIME_FNL'))
+        return linear_response(GS(obj, data), time + time_step)
     else:
         return GS(obj, data) 
 
@@ -93,17 +97,18 @@ def linear_response(GS_obj, time_slice):
     #run
     LR.run_properties()
     # 'MC_anlsplotALL.out' contains 100 LR roots:
-    # root -- i + 10 + 2*M
+    # root -- i + 10 + 2*M [0]
     # energies -- dE_i = E_i-E_0 [1], E_0 [2]
     # norm -- orbital-, CI-part [3:5]
-    # response amplitudes -- f+=f-=x [5], x**2 [6]
+    # response amplitudes (RE, IM) -- f+=f-=x [5:7], x**2 [7:9]
     dpath = 'DATA/getLR/'
     state = GS_obj
-    for dstate in io.extract_data(dpath + 'MC_anlsplotAll.out'):
-        new_state = ES(GS_obj, dstate)
-        if (new_state.get_pvalue('i') > 0):
-            state.set_pright('E', new_state)
-            new_state.set_pleft('E', state)
+    root = 10 + 2*GS_obj.get_pvalue('M')
+    for dstate in io.extract_data(dpath + 'MC_anlsplotALL.out'):
+        if (dstate[0] > root) and (dstate[2] > GS_obj.E):
+            new_state = ES(GS_obj, dstate)
+            state.set_pright('i', new_state)
+            new_state.set_pleft('i', state)
             assert (new_state.get_pvalue('i')-1 == state.get_pvalue('i')) 
             assert (state is not new_state)
             state = new_state
@@ -149,7 +154,7 @@ def print_spec(GS_obj, Nstates=20):
     state = GS_obj
     count = 0
     while (state.get_pright('i') != None):
-        print repr(state)
+        print(repr(state))
         state = state.get_pright('i')
         if (count < Nstates):
             count += 1

@@ -1,4 +1,4 @@
-#python2
+#python3.5
 #marcustheisen@web.de
 
 """testsuit.py"""
@@ -54,11 +54,11 @@ class TestFortranWrapping(unittest.TestCase):
     
     def testReadWrite(self):
         for infile in self.pars:
-            io.write_input(self.pars[infile], infile)
-            
             if (infile == 'bar.in'):
+                io.write_str_input(self.pars[infile], infile)
                 pars = io.read_str_input(infile)
             else:
+                io.write_f90_input(self.pars[infile], infile)
                 pars = io.read_f90_input(infile)
             self.assertEqual(self.pars[infile], pars)
     
@@ -95,7 +95,7 @@ class TestFortranWrapping(unittest.TestCase):
         self.assertRaises(io.InterpretationError, io.from_f90, 'd+2')
     
     def testToFortran(self):
-        self.assertEqual(io.to_f90(- 07), '-7')
+        #self.assertEqual(io.to_f90(- 07), '-7')
         self.assertEqual(io.to_f90(3.), '3.0')
         self.assertEqual(io.to_f90(+ .1e-31), '1e-32')
         self.assertEqual(io.to_f90(complex(-2, 0.4)), '(-2.0, 0.4)')

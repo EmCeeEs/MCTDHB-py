@@ -1,4 +1,4 @@
-#python2
+#python3.5
 #marcustheisen@web.de
 
 """Provides basic classes and functions"""
@@ -47,21 +47,22 @@ def get_binaries():
 
 def execute(command, quiet=False):
     """execute(command, quiet=False)"""
-    popen = subp.Popen(command, stdout=subp.PIPE)
-    lines_iterator = iter(popen.stdout.readline, b"")
-    for line in lines_iterator:
-        print line # yield line
-        #print 'waiting...'
-    return
     # If exit status of program is non-zero,
     # always raise subp.CalledProcessError.
     path = './'
     if (quiet):
         # Catch everything from stdout and sterr and return it.
-        subp.check_output([path + binary], stderr=subp.STDOUT)
+        subp.check_output([path + command], stderr=subp.STDOUT)
     else:
         # Print everything and return exit status.
-        subp.check_call([path + binary])
+        subp.check_call([path + command])
+    return
+    process = subp.Popen(command, stdout=subp.PIPE)
+    for line in iter(process.stdout.readline, b''):
+        print(repr(line))
+        #print(line) # yield line
+    return
+    
 
 def rm_output():
     """Remove existing MCTDHB output data."""

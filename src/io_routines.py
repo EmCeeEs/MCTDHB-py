@@ -1,4 +1,4 @@
-#python2
+#python3.5
 #marcustheisen@web.de
 #
 # The MCTDHB-package is written in Fortran90, which does not distingish
