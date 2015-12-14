@@ -1,0 +1,192 @@
+&ZERO_BODY
+TOTAL_ENERGY="
+    BOOL -- (de)activate total energy analysis ??
+    "
+DATA_PSI="
+    BOOL -- print '...time.dat'
+    "
+DATA_CIC="
+    BOOL -- print '...coef.dat'
+    "
+T_FROM="
+    REAL -- initial time point
+    "
+T_TILL="
+    REAL -- final time point
+    "
+T_POINTS="
+    INT -- number of points considered in interval [T_FROM, T_TILL]
+    "
+KDIP="
+    REAL -- momentum threshold: Data with momenta smaller than
+            Kdip * K_max are NOT taken into consideration
+    "
+/
+&ONE_BODY
+NO_X="
+    BOOL -- print diagonal part of one-body density in real space
+    "
+NO_K="
+    BOOL -- print diagonal part of one-body density in momentum space
+    "
+DILTN="
+    BOOL -- supporting dilation (??)
+    "
+PNOT="
+    BOOL -- calculate the integral of the one-body-density over [XSTART, XEND]
+    "
+XSTART="
+    REAL -- left integral boundary
+    "
+XEND="
+    REAL -- right integral boundary
+    "
+/
+&TWO_BODY
+DNS_XX="
+    BOOL -- print two-body density (correlation function) in real space
+    "
+DNS_KK="
+    BOOL -- print two-body density (correlation function) in momentum space
+    "
+CORR1RESTR="
+    BOOL -- (de)activate restricted one-boson density in real space
+            calulate rho^1(x_1,x'_1) in interval [XINI1, XFIN1]
+    "
+XINI1="
+    REAL -- lower x bound for CORR1RESTR
+    "
+XFIN1="
+    REAL -- upper x bound for CORR1RESTR
+    "
+XPTS1="
+    INT -- number of points in [XINI1, XFIN1]
+    "
+CORR1RESTRMOM="
+    BOOL -- (de)activate restricted one-boson density in momentum space
+            calculate rho(k_1,k'_1) in interval [KXINI1, KXFIN1]
+    "
+KXINI1="
+    REAL -- lower k bound for CORR1RESTRMOM
+    "
+KXFIN1="
+    REAL -- upper k bound for CORR1RESTRMOM
+    "
+KPTS1="
+    INT -- number of points in [KXINI1, KXFIN1]
+    "
+CORR2RESTR="
+    BOOL -- (de)activate restricted two-boson density in real space
+            calculate rho(x_1,x_2) in interval [XINI2, XFIN2]
+    "
+XINI2="
+    REAL -- lower x bound for CORR2RESTR
+    "
+XFIN2="
+    REAL -- upper x bound for CORR2RESTR
+    "
+XPTS2="
+    INT -- number of points in [XINI2, XFIN2]
+    "
+CORR2RESTRMOM="
+    BOOL -- (de)activate restricted two-boson density in momentum space
+            calculate rho(k_1,k_2) in interval [KXINI2, KXFIN2]
+    "
+KXINI2="
+    REAL -- lower k bound for CORR2RESTRMOM
+    "
+KXFIN2="
+    REAL -- upper k bound for CORR2RESTRMOM
+    "
+KPTS2="
+    INT -- number of points in [KXINI2, KXFIN2]
+    "
+LOSSOPS="
+    REAL -- compute the difference interal (??)
+    "
+BORDER="
+    REAL -- border in Hilbert space (??)
+    "
+/
+&TWO_D
+MOMSPACE2D="
+    BOOL -- (De)activate 2D two-body density (correlation function)
+            in momentum space. Compute
+            rho^1(k_1x,k_1y,k'_1x,k'_1y) 
+            rho^2(k_1x,k_1y,k_2x,k_2y)
+            Two coordinates of four have to be kept constant to obtain
+            a 3-D plot. Control variables are 
+            X1CONST, X2CONST, Y1CONST(k'_1x), Y2CONST(k'_1y)
+            Their values are set via the variables with the 'slice' suffix:
+            X1SLICE, X2SLICE, Y1SLICE, Y2SLICE
+    "
+REALSPACE2D="
+    BOOL -- (De)activate 2D two-body density (correlation function)
+            in real space. Compute
+            rho^1(x_1x,x_1y,x'_1x,x'_1y)  
+            rho^2(x_1x,x_1y,x_2x,x_2y)
+            Two coordinates of four have to be kept constant to obtain
+            a 3-D plot. Control variables are 
+            X1CONST, X2CONST, Y1CONST(x'_1x), Y2CONST(x'_1y)
+            Their values are set via the variables with the 'slice' suffix:
+            X1SLICE, X2SLICE, Y1SLICE, Y2SLICE
+    "
+X1CONST="
+    BOOL -- set 1. particle x-component to be constant
+    "
+X1SLICE="
+    REAL -- position of 1. particle x-component
+    "
+Y1CONST="
+    BOOL -- set 2. particle x-component to be constant
+    "
+Y1SLICE="
+    REAL -- position of 2. particle x-component
+    "
+X2CONST="
+    BOOL -- set 1. particle y-component to be constant
+    "
+X2SLICE="
+    REAL -- position of 1. particle y-component
+    "
+Y2CONST="
+    BOOL -- set 2. particle y-component to be constant
+    "
+Y2SLICE="
+    REAL -- position of 2. particle y-component
+    "
+ZEROPADDING2D="
+    BOOL -- (De)activate zero padding. This controls whether to try to
+            increase the resolution of the 2D FT.
+            DILATION2D specifies this increase.
+    "
+DILATION2D="
+    INT -- number of potential increase if ZEROPADDING2D
+    "
+PROJ_X="
+    BOOL -- calculate the projection:
+            V(X or Y) = sum_ij rho_ij <phi_i|v_(x,y)|phi_j>_X/Y/<phi_i|phi_j>_X/Y
+    "
+DIR="
+    Set type/direction of prejection if PROJ_X:
+    'X' -- on x-axis V(X)
+    'Y' -- on y-axis V(Y)
+    'B' -- both V(X) and V(Y)
+    "
+L_Z="
+    BOOL -- give orbital and total angular momentum for 2D FFT calculations
+    "
+/
+&LR
+GET_LR="
+    BOOL -- (de)activate linear response analysis (LR-MCTDHB)
+    "
+LR_MAXSIL="
+    INT -- maximal ?? in SIL algorithm
+    "
+/
+&WSL
+GET_WSL="
+    BOOL -- (de)activate analysis of local time-dependent potentials (WSL) ??
+    "
+/

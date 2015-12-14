@@ -1,0 +1,190 @@
+&PRM
+MB_JOB_TYPE="
+    'ALL' -- standard MCTDHB
+    'FCI' -- full configurational integration  
+    "
+MORB="
+    INT [1-12] -- number of orbitals
+    "
+NPAR="
+    INT [1+] -- number of particles
+    "
+XLAMBDA_0="
+    REAL -- inter particle interaction (s-wave scattering length)
+    "
+JOB_PREFAC="
+    COMPLEX -- job type
+    (-1.0, 0.0) -- forward relaxation
+    (+1.0, 0.0) -- backward relaxation
+    (0.0, -1.0) -- forward propagation
+    (0.0, +1.0) -- backward propagation
+    "
+GUESS="
+    'BINR' -- Guess taken from MCTHDB binaries 'PSI_bin' and 'CIc_bin'
+    'HAND' -- Guess taken from 'V_W_Psi_string.in' else default
+    'DATA' -- Guess taken from '...time.dat' and '...coef.dat' files
+    "
+ORB_DIAG="
+    BOOL -- Compute trap eigenvalues
+    "
+BINARY_START_POINT_T="
+    REAL -- If GUESS='BINR' start at this time point
+    "
+TIME_RES_ORB_FILE_NAME="
+    FILENAME -- if GUESS='DATA' load orbital guess from file
+    "
+TIME_RES_CIC_FILE_NAME="
+    FILENAME -- if GUESS='DATA' load configurational guess from file
+    "
+/
+&ORB
+DIM_MCTDHB="
+    INT [1-3] -- number of dimension
+    "
+NDX="
+    INT [1+] -- number of grid points x-direction
+    "
+NDY="
+    INT [1+] -- number of grid points y-direction
+    "
+NDZ="
+    INT [1+] -- number of grid points z-direction
+    "
+TIME_DVRMETHODX="
+    Specify the DVR (discrete variable representation) method for the x-axis:
+    1 -- HO-DVR (harmonic oscillator)
+         boundary: ??
+         grid: ??
+    3 -- sine DVR
+         boundary: infinity
+         grid: ??
+    4 -- FFT-DVR (fast fourier transformation)
+         best for large grids
+         boundary: periodic
+         grid: equidistant
+    5 -- exponential DVR
+         best for small grids
+         boundary: periodic
+         grid: equidistant
+    "
+TIME_DVRMETHODY="
+    Specify the DVR method for the y-axis
+    "
+TIME_DVRMETHODZ="
+    Specify the DVR method for the z-axis
+    "
+WXX_TYPE="
+    Specify the particle interaction type:
+    0 -- contact interaction (Dirac delta distribution)
+         W(r,r') = Delta(r-r')
+    1 -- separable interaction
+         W(r,r') = W(x-x')*W(y-y')*W(z-z')
+    2 -- radially symmetric (only for equidistant grids)
+         W(r,r') = W(r-r')
+    3 -- general approach using storing matrix W(i,j)
+         Dim(W) = (NDX*NDY*NDZ)**2
+    4 -- general approach using FFT
+         Dim(W) = NDX*NDY*NDZ
+    "
+TIME_XINT="
+    The system is defined on an interval [TIME_XINT, TIME_XFNL]:
+    REAL -- lower bound on x-axis
+    "
+TIME_XFNL="
+    The system is defined on an interval [TIME_XINT, TIME_XFNL]:
+    REAL -- upper bound on x-axis
+    "
+TIME_YINT="
+    The system is defined on an interval [TIME_YINT, TIME_YFNL]:
+    REAL -- lower bound on y-axis
+    "
+TIME_YFNL="
+    The system is defined on an interval [TIME_YINT, TIME_YFNL]:
+    REAL -- upper bound on y-axis
+    "
+TIME_ZINT="
+    The system is defined on an interval [TIME_ZINT, TIME_ZFNL]:
+    REAL -- lower bound on z-axis
+    "
+TIME_ZFNL="
+    The system is defined on an interval [TIME_ZINT, TIME_ZFNL]:
+    REAL -- upper bound on z-axis
+    "
+TIME_MASS="
+    REAL -- mass of a particle 
+            lambda_0 = lambda_0/Mass -> V_0 = V_0/Mass 
+    "
+WTD="
+    BOOL -- flag indicating explicit time dependency of interparticle potential
+            W(r,r') = W(r,r',t)
+    "
+/
+&TM
+TIME_BGN="
+    REAL -- initial time point
+    "
+TIME_FNL="
+    REAL -- final time point
+    "
+TIME_MAX="
+    REAL -- overall maximum time (working?)
+    "
+TIME_PRINT_STEP="
+    REAL -- time step used to print '...time.dat'
+    "
+TIME_ICI_PRT="
+    INT -- TIME_PRINT_STEPs passed before printing '...coef.dat' 
+    "
+TIME_TAU="
+    REAL -- working relaxation step (/2 ??)
+            initial propagation step
+    "
+TIME_TOLERROR_TOTAL="
+    REAL -- time tolerrance per iteration
+    "
+TIME_MIN_OCC_ALLOWED="
+    REAL -- minimal occupation number allowed
+    "
+TIME_MINSIL="
+    INT -- minimal size of Krylov subspace in SIL (Short Iterative Lanczos)
+    "
+TIME_MAXSIL="
+    INT -- minimal size of Krylov subspace in SIL (Short Iterative Lanczos)
+    "
+TIME_INTGR="
+    Specify the integrator of the orbital part:
+    'ABM' -- Adams-Bashforth-Moulton integrator
+    'OMPABM' -- OpenMP Adams-Bashforth-Moulton integrator
+    'RK' -- Runge-Kutta integrator
+    'BS' -- Bulirsch-Stoer integrator
+    'STIFF' -- integrator for stiff orbital EOM
+    "
+TIME_INTGR_ORDER="
+    Order of integrator:
+    1-7 -- for ABM/OMPABM
+    5,8 -- for RK
+    1-16 -- for BS
+    1,2 -- for STIFF (1 meaning total error, 2 error per point) (??)
+    "
+TIME_INTGR_MAX_STEP="
+    REAL -- maximal integration step allowed orbital part
+    "
+PRINT_DATA="
+    BOOL -- do (not) print '...time.dat' and '...coef.dat'
+    "
+TD_ERR_SCALE="
+    REAL -- error scaleing factor for time dependent potentials
+            V(r) = V(r,t)
+    "
+LZ="
+    BOOL -- (de)activate angular momentum in 2D calculations
+    "
+OMEGAZ="
+    REAL -- angular frequency
+    "
+STATE="
+    INT -- eigenstate to be computed (1 == groundstate)
+    "
+/
+&USRPAR
+/
