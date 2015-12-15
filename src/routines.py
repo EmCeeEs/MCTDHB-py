@@ -98,15 +98,20 @@ def linear_response(GS_obj, time_slice):
     LR.run_properties()
     # 'MC_anlsplotALL.out' contains 100 LR roots:
     # root -- i + 10 + 2*M [0]
-    # energies -- dE_i = E_i-E_0 [1], E_0 [2]
+    # energies -- dE_i = E_i-E_0 [1], E_i [2]
     # norm -- orbital-, CI-part [3:5]
     # response amplitudes (RE, IM) -- f+=f-=x [5:7], x**2 [7:9]
     dpath = 'DATA/getLR/'
     state = GS_obj
-    root = 10 + 2*GS_obj.get_pvalue('M')
-    for dstate in io.extract_data(dpath + 'MC_anlsplotALL.out'):
-        if (dstate[0] > root) and (dstate[2] > GS_obj.E):
-            new_state = ES(GS_obj, dstate)
+    GS_root = 10 + 2*GS_obj.get_pvalue('M')
+    for data in io.extract_data(dpath + 'MC_anlsplotALL.out'):
+        root = data[0] - GS_root
+        E = data[2] 
+        norm = data[3:5]
+        uAmp = data[5:7]
+        gAmp = data[7:9]
+        if (root > 0) and (E > GS_obj.E):
+            new_state = ES(GS_obj, data)
             state.set_pright('i', new_state)
             new_state.set_pleft('i', state)
             assert (new_state.get_pvalue('i')-1 == state.get_pvalue('i')) 
@@ -139,6 +144,17 @@ def prop(obj, tolerance=1E-6, t_final=200., backward=False, guess='BINR',
         obj.set_par('TIME_RES_CIC_FILE_NAME', '10.0000000coef.dat')
     else:
         raise Exception('Invalid guess type')
+    # '...time.dat' contains information about the wavefunction
+    # at given time slice in real space.
+    # position on grid -- (x,y,z) [0:3]
+    # weight ?? -- [3]
+    # potential value -- [4]
+    # density -- RE/Npar IM/Npar [5:7]
+    # ?? -- /weight^2/Npar [7:9]
+    # orbital wavefunction -- RE, IM [9+4*(m-1), 11+4*(m-1)] for m in Morb
+    # orbital ?? -- RE, IM [11+4*(m-1), 13+4*(m-1)] for m in Morb
+    # natural ocuupation of m=[M,M-1,...1] -- [13+4*(M-1):13+4*(M-1)+M]
+    # time slice -- [13+4*(M-1)+M]
     
     obj.set_par('PRINT_DATA', True)
     obj.set_par('TIME_BGN', 0.)

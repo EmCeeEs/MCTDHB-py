@@ -8,12 +8,68 @@ import src.io_routines as io
 f90_infiles = ['input.in', 'properties.in']
 str_infiles = ['V_W_Psi_string.in']
 
+class MCTDHB_infile(object):
+    """MCTDHB infile class."""
+    def __init__(self, path, from_str=False):
+        self.read(path, from_str)
+    
+    def read(self, path, from_str=False):
+        self.is_str = from_str
+        self.path = path
+        if (self.is_str):
+            self._data = read_str_input(self.path)
+        else:
+            self._data = read_f90_input(self.path)
+    
+    def write(self, path=self._path):
+        if (self.is_str):
+            write_str_input(self.path)
+        else:
+            write_f90_input(self._data, path)
+    
+    def get(self, name):
+        """Get parameter value."""
+        if (self.is_str):
+            for key, value in self._data.items(): 
+                if (key == name):
+                    retval = value
+                    found = True
+        else:
+            name = name.upper()
+            for namespace, pars in self._data.items():
+                for key, value in pars.items(): 
+                    if (key == name):
+                        retval = value
+                        found = True
+        
+        if (not found):
+            raise ValueError(pname, 'is no MCTDHB parameter!')
+        else:
+            return retvalue
+        
+    def set(self, name, value):
+        """Set parameter value."""
+        oldval = self.get(name)
+        if (type(value) is not type(oldval)):
+            raise TypeError(name, 'is of type', type(oldval), '!')
+        
+        if (self.is_str):
+            for key in self._data: 
+                if (key == name):
+                    self._data[key] = value
+                    return
+        else:
+            name = name.upper()
+            for namespace, pars in self._data.items():
+                for key in pars: 
+                    if (key == name):
+                        pars[key] = value
+                        return
+
 class MCTDHB(object):
     """MCTDHB class"""
-    def __init__(self, restore=False):
+    def __init__(self):
         """Initalize MCTDHB object from current input files."""
-        if (restore):
-            self.restore()
         self.read_input()
         self.update_binaries()
     
@@ -135,16 +191,21 @@ class MCTDHB(object):
                     self.set_par(pname, False)
     
     def set_pot(self, pot):
+        """V(x_y_z&t)"""
         pass
     
     def set_inter(self, wpot):
+        """W(R=|r1-r2|&t)"""
         pass
     
     def set_mom(self, mom):
+        """Imprint_MOM"""
         pass
     
     def set_psi(self, orb, psi):
+        """Psi_m(x_y_z), m in M"""
         pass
     
     def set_dnsFock(self, dnsFock):
+        """Df_cnf_Fock"""
         pass

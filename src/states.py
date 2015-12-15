@@ -20,7 +20,7 @@ MIN_DIFF = 0.5
 class Node(object):
     """Parameter node providing a value and two links."""
     # May be better to pass and (store?) neighbors as tuples...
-    # i.e. neighbors=(None, state)
+    # i.e. neighbors=(None, right_state)
     def __init__(self, value, left=None, right=None):
         self.set_value(value)
         self.set_left(left)
@@ -159,20 +159,20 @@ class ES(MCTDHBState):
         return retval
     
     def set_norm(self):
-        """Guess normalization type."""
-        if (self.get_pvalue('M') == 1):
-            assert abs(abs(self.data[3]) - 1) < ERR_NORM
-            assert abs(self.data[4]) < ERR_NORM
+        """Set normalization type."""
+        phi, ci = self.data[3:5]
+        if abs(1 - (phi+ci)) < ERR_NORM:
+            if abs(ci) < abs(phi):
+                self.norm = 'phi'
+            else:
+                self.norm = 'ci'
+        elif abs(1 + (phi+ci)) < ERR_NORM:
+            if abs(ci) < abs(phi):
+                self.norm = '-phi'
+            else:
+                self.norm = '-ci'
         else:
-            #print(sum(self.data[3:5]))
-            assert abs(abs(sum(self.data[3:5])) - 1) < ERR_NORM
-        
-        if (self.data[3] < self.data[4]):
-            self.norm = NormType['phi']
-            self.norm = 'phi'
-        else:
-            self.norm = NormType['ci']
-            self.norm = 'ci'
+            self.norm = 'not normalized'
      
     def __repr__(self):
         return State.__repr__(self) + ', norm: ' + repr(self.norm)

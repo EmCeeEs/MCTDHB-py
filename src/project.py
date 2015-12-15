@@ -4,13 +4,13 @@
 """MCTDHB project"""
 from mctdhb import MCTDHB
 
-class Project(MCTDHB):
+class Project(object):
     def __init__(self, name):
         if is_valid(name):
             self.name = name
         else:
             raise TypeError('Name must be of type str!')
-        MCTDHB.__init__(self, restore=True)
+        MCTDHB.restore()
     
     @classmethod
     def from_template(cls, temp):
@@ -32,3 +32,9 @@ class Project(MCTDHB):
 def load(name):
     # loads an exsisting net of states!
     pass
+
+def is_valid(name):
+    if type(name) is str:
+        return True
+    else:
+        return False
