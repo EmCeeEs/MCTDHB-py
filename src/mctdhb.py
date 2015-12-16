@@ -29,42 +29,36 @@ class MCTDHB_infile(object):
     
     def get(self, name):
         """Get parameter value."""
-        if (self.is_str):
-            for key, value in self._data.items(): 
+        if not (self.is_str):
+            name = name.upper()
+        
+        found = False
+        for namespace, pars in self._data.items():
+            for key, value in pars.items(): 
                 if (key == name):
                     retval = value
                     found = True
-        else:
-            name = name.upper()
-            for namespace, pars in self._data.items():
-                for key, value in pars.items(): 
-                    if (key == name):
-                        retval = value
-                        found = True
+                    break
         
         if (not found):
-            raise ValueError(pname, 'is no MCTDHB parameter!')
+            raise ValueError(name, 'is no MCTDHB parameter!')
         else:
             return retvalue
         
     def set(self, name, value):
         """Set parameter value."""
+        if not (self.is_str):
+            name = name.upper()
+        
         oldval = self.get(name)
         if (type(value) is not type(oldval)):
             raise TypeError(name, 'is of type', type(oldval), '!')
         
-        if (self.is_str):
-            for key in self._data: 
+        for namespace, pars in self._data.items():
+            for key in pars: 
                 if (key == name):
-                    self._data[key] = value
+                    pars[key] = value
                     return
-        else:
-            name = name.upper()
-            for namespace, pars in self._data.items():
-                for key in pars: 
-                    if (key == name):
-                        pars[key] = value
-                        return
 
 class MCTDHB(object):
     """MCTDHB class"""
