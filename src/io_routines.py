@@ -174,6 +174,8 @@ def from_f90(fstring):
     #REAL -- float
     else:
         try:
+            # Fortan does not distinguish between d and e
+            # indicating scientific notation of floats, i.e. 1d-04.
             for char in 'dD':
                 fstring = fstring.replace(char, 'e')
             return float(fstring)
